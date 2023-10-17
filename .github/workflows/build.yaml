@@ -1,0 +1,78 @@
+name: Test Coverage and Build Backend Docker
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  REGISTRY: ghcr.io
+  BASE_IMG_NAME: ${{ github.repository }}
+jobs:
+  sonarcloud:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Update pip
+        run: pip install --upgrade pip
+      - name: Install pip packages
+        run: pip install -r requirements/dev.txt
+      - name: Install tox and any other packages
+        run: pip install tox
+      - name: Run tox
+        run: tox -e py
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+    - name: Check out the repo
+      uses: actions/checkout@v3
+    - name: Log in to the container registry
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Derive short SHA name
+      id: vars
+      run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+    - name: Build the Docker image
+      run: |
+        docker build . --file Dockerfile \
+        --tag ghcr.io/${{ env.BASE_IMG_NAME }}/fastapi-backend:${{ steps.vars.outputs.sha_short }} \
+        --tag ghcr.io/${{ env.BASE_IMG_NAME }}/fastapi-backend:latest
+    - name: Publish the images
+      run: |
+        docker push ghcr.io/${{ env.BASE_IMG_NAME }}/fastapi-backend:${{ steps.vars.outputs.sha_short }}
+        docker push ghcr.io/${{ env.BASE_IMG_NAME }}/fastapi-backend:latest
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      packages: read
+
+    steps:
+    - name: Deploy Docker Image on Droplet
+      uses: appleboy/ssh-action@master
+      with:
+        host:  ${{ secrets.SSH_HOST }}
+        key:   ${{ secrets.SSH_KEY }}
+        username:  ${{ secrets.SSH_USERNAME }}
+        script: |
+          docker rm -f backend
+          docker pull ghcr.io/nimbus-nebula/fastapi-backend/fastapi-backend:latest
+          docker run -d --name=backend --env-file /home/justyn/nim-neb/.env -p 8000:8000 ghcr.io/nimbus-nebula/fastapi-backend/fastapi-backend:latest
