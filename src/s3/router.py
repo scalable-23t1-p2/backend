@@ -1,7 +1,7 @@
 import ast
 from io import BytesIO
 
-from databases.interfaces import Record
+# from databases.interfaces import Record
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 from pydantic import EmailStr
 from starlette import status
@@ -11,13 +11,30 @@ from starlette import status
 # from src.auth.jwt import parse_jwt_user_data
 # from src.auth.schemas import JWTData
 # from s3 import objects_list
-# from s3 import upload as s3upload
+from s3 import list_buckets as s3_list_buckets
+from s3 import upload_raw as s3_upload_raw
+
 
 router = APIRouter()
 
-@router.get("/list", status_code=status.HTTP_200_OK)
-async def list_files():
+@router.get("/hello", status_code=status.HTTP_200_OK)
+async def say_hi():
     return {"message": "Hello World S3"}
+
+@router.get("/list_bucket", status_code=status.HTTP_200_OK)
+async def list_buckets():
+    bucket_list = await s3_list_buckets.list_buckets()
+    return bucket_list
+
+@router.post("/upload_raw", status_code=status.HTTP_201_CREATED)
+async def upload_raw(
+    file: UploadFile = File(...),
+    name: str = Form(...),
+)-> dict[str, str]:
+    file_contents = await file.read()
+    file_bytes = BytesIO(file_contents)
+    upload_raw_result = await s3_upload_raw.upload_raw(name, file_bytes)
+    return upload_raw_result
 
 # @router.post("/upload", status_code=status.HTTP_201_CREATED)
 # async def upload(
