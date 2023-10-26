@@ -15,8 +15,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID
 
-from src.config import settings
-from src.constants import DB_NAMING_CONVENTION
+from config import settings
+from constants import DB_NAMING_CONVENTION
 
 DATABASE_URL = settings.DATABASE_URL
 
@@ -29,7 +29,7 @@ database = Database(DATABASE_URL, force_rollback=settings.ENVIRONMENT.is_testing
 auth_user = Table(
     "auth_user",
     metadata,
-    Column("id", Integer, Identity(), primary_key=True),
+    Column("uuid", Integer, Identity(), primary_key=True),
     Column("email", String, nullable=False),
     Column("password", LargeBinary, nullable=False),
     Column("is_admin", Boolean, server_default="false", nullable=False),
@@ -41,7 +41,7 @@ refresh_tokens = Table(
     "auth_refresh_token",
     metadata,
     Column("uuid", UUID, primary_key=True),
-    Column("user_id", ForeignKey("auth_user.id", ondelete="CASCADE"), nullable=False),
+    Column("user_id", ForeignKey("auth_user.uuid", ondelete="CASCADE"), nullable=False),
     Column("refresh_token", String, nullable=False),
     Column("expires_at", DateTime, nullable=False),
     Column("created_at", DateTime, server_default=func.now(), nullable=False),
@@ -52,7 +52,7 @@ messages = Table(
     "messages",
     metadata,
     Column("id", Integer, Identity(), primary_key=True),
-    Column("user_id", ForeignKey("auth_user.id", ondelete="CASCADE"), nullable=False),
+    Column("user_id", ForeignKey("auth_user.uuid", ondelete="CASCADE"), nullable=False),
     Column("message", String, nullable=False),
     Column("created_at", DateTime, server_default=func.now(), nullable=False),
     Column("updated_at", DateTime, onupdate=func.now()),
