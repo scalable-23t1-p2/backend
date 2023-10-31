@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import BaseSettings, PostgresDsn, RedisDsn, root_validator
 
-from constants import Environment
+from src.constants import Environment
 import os
 from dotenv import load_dotenv
 
@@ -13,26 +13,27 @@ class Config(BaseSettings):
     DATABASE_URL: PostgresDsn = os.getenv("DATABASE_URL")
     print("hi Database")
     print(os.getenv("DATABASE_URL"))
-    # REDIS_URL: RedisDsn
+    REDIS_URL: RedisDsn
 
-    #SITE_DOMAIN: str = "tanpantz.com"
+    # SITE_DOMAIN: str = "tanapon.com"
+    SITE_DOMAIN: str = "127.0.0.1"
 
     ENVIRONMENT: Environment = Environment.PRODUCTION
 
     SENTRY_DSN: str | None
 
-    # CORS_ORIGINS: list[str]
-    # CORS_ORIGINS_REGEX: str | None
-    # CORS_HEADERS: list[str]
+    CORS_ORIGINS: list[str]
+    CORS_ORIGINS_REGEX: str | None
+    CORS_HEADERS: list[str]
 
     APP_VERSION: str = "1"
 
-    # @root_validator(skip_on_failure=True)
-    # def validate_sentry_non_local(cls, data: dict[str, Any]) -> dict[str, Any]:
-    #     if data["ENVIRONMENT"].is_deployed and not data["SENTRY_DSN"]:
-    #         raise ValueError("Sentry is not set")
+    @root_validator(skip_on_failure=True)
+    def validate_sentry_non_local(cls, data: dict[str, Any]) -> dict[str, Any]:
+        if data["ENVIRONMENT"].is_deployed and not data["SENTRY_DSN"]:
+            raise ValueError("Sentry is not set")
 
-    #     return data
+        return data
 
 
 settings = Config()

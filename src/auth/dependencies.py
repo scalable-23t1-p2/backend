@@ -3,9 +3,9 @@ from datetime import datetime
 from databases.interfaces import Record
 from fastapi import Cookie, Depends
 
-from auth import service
-from auth.exceptions import EmailTaken, RefreshTokenNotValid
-from auth.schemas import AuthUser
+from src.auth import service
+from src.auth.exceptions import EmailTaken, RefreshTokenNotValid
+from src.auth.schemas import AuthUser
 
 
 async def valid_user_create(user: AuthUser) -> AuthUser:

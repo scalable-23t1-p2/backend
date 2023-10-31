@@ -3,7 +3,7 @@ import boto3
 from botocore.exceptions import ClientError
 import os
 from typing import Dict
-from s3 import list_buckets as s3_list_buckets
+from src.s3 import list_buckets as s3_list_buckets
 
 """
 In boto3, the client and resource are two different ways to interact with AWS services.

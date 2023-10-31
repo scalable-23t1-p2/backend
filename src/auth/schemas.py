@@ -1,7 +1,7 @@
 import re
 
 from pydantic import EmailStr, Field, validator
-from models import ORJSONModel
+from src.models import ORJSONModel
 
 STRONG_PASSWORD_PATTERN = re.compile(r"^(?=.*[\d])(?=.*[!@#$%^&*])[\w!@#$%^&*]{6,128}$")
 

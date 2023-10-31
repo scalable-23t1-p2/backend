@@ -5,20 +5,25 @@ from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 
-from auth.config import auth_config
-from auth.exceptions import AuthorizationFailed, AuthRequired, InvalidToken
-from auth.schemas import JWTData
+from src.auth.config import auth_config
+from src.auth.exceptions import AuthorizationFailed, AuthRequired, InvalidToken
+from src.auth.schemas import JWTData
 
+# The tokenUrl parameter specifies the URL where the client can obtain a token. 
+# The auto_error parameter is set to False, which means that if the token is not present in the request, 
+# the OAuth2PasswordBearer instance will return None instead of raising an exception.
+# This instance is used as a dependency in the parse_jwt_user_data_optional function, which is used to parse the JWT token and 
+# return its payload as a JWTData object.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/users/tokens", auto_error=False)
 
-
+#sub = subject
 def create_access_token(
     *,
     user: Record,
     expires_delta: timedelta = timedelta(minutes=auth_config.JWT_EXP),
 ) -> str:
     jwt_data = {
-        "sub": str(user["id"]),
+        "sub": str(user["uuid"]),
         "exp": datetime.utcnow() + expires_delta,
         "is_admin": user["is_admin"],
     }

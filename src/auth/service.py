@@ -4,12 +4,12 @@ from datetime import datetime, timedelta
 from databases.interfaces import Record
 from pydantic import UUID4
 from sqlalchemy import insert, select
-import utils
-from auth.config import auth_config
-from auth.exceptions import InvalidCredentials
-from auth.schemas import AuthUser
-from auth.security import check_password, hash_password
-from database import auth_user, database, messages, refresh_tokens
+from src import utils
+from src.auth.config import auth_config
+from src.auth.exceptions import InvalidCredentials
+from src.auth.schemas import AuthUser
+from src.auth.security import check_password, hash_password
+from src.database import auth_user, database, messages, refresh_tokens
 from typing import Optional, Union
 
 
@@ -35,11 +35,12 @@ For example, in the get_user_by_uuid function, select_query = select(auth_user).
 we want to select all columns from the auth_user table where the id column matches the user_uuid parameter. The .c attribute is used to access the columns of the table.
 """
 async def get_user_by_uuid(user_uuid: int) -> Record | None:
-    select_query = select(auth_user).where(auth_user.c.id == user_uuid)
+    select_query = select(auth_user).where(auth_user.c.uuid == user_uuid)
     return await database.fetch_one(select_query)
 
 
 async def get_user_by_email(email: str) -> Record | None:
+    print(f"get_user_by_email: {auth_user.c.email}")
     select_query = select(auth_user).where(auth_user.c.email == email)
     return await database.fetch_one(select_query)
 
@@ -91,6 +92,7 @@ async def expire_refresh_token(refresh_token_uuid: UUID4) -> None:
 
 async def authenticate_user(auth_data: AuthUser) -> Record:
     user = await get_user_by_email(auth_data.email)
+    #If user is None or False, then the condition is true 
     if not user:
         raise InvalidCredentials()
 

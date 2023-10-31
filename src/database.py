@@ -1,4 +1,5 @@
 from databases import Database
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import (
     Boolean,
     Column,
@@ -13,10 +14,10 @@ from sqlalchemy import (
     create_engine,
     func,
 )
-from sqlalchemy.dialects.postgresql import UUID
 
-from config import settings
-from constants import DB_NAMING_CONVENTION
+
+from src.config import settings
+from src.constants import DB_NAMING_CONVENTION
 
 DATABASE_URL = settings.DATABASE_URL
 
@@ -36,6 +37,9 @@ auth_user = Table(
     Column("created_at", DateTime, server_default=func.now(), nullable=False),
     Column("updated_at", DateTime, onupdate=func.now()),
 )
+
+#CASCADE means that when a row in the parent table is deleted, 
+# all rows in the child table that reference it will also be deleted
 
 refresh_tokens = Table(
     "auth_refresh_token",
@@ -57,3 +61,5 @@ messages = Table(
     Column("created_at", DateTime, server_default=func.now(), nullable=False),
     Column("updated_at", DateTime, onupdate=func.now()),
 )
+
+metadata.create_all(engine)

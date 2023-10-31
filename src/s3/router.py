@@ -11,8 +11,8 @@ from starlette import status
 # from src.auth.jwt import parse_jwt_user_data
 # from src.auth.schemas import JWTData
 # from s3 import objects_list
-from s3 import list_buckets as s3_list_buckets
-from s3 import upload_raw as s3_upload_raw
+from src.s3 import list_buckets as s3_list_buckets
+from src.s3 import upload_raw as s3_upload_raw
 
 
 router = APIRouter()
