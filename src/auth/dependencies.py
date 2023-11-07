@@ -32,7 +32,7 @@ async def valid_refresh_token(
 async def valid_refresh_token_user(
     refresh_token: Record = Depends(valid_refresh_token),
 ) -> Record:
-    user = await service.get_user_by_id(refresh_token["user_id"])
+    user = await service.get_user_by_uuid(refresh_token["user_id"])
     if not user:
         raise RefreshTokenNotValid()
 

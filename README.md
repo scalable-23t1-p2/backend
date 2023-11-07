@@ -1,5 +1,10 @@
 ## Local Development
 
+### Docker worker image
+```shell
+docker build -t convert_worker .
+```
+
 ### First Build Only
 
 1. `cp .env.example .env`

@@ -63,7 +63,7 @@ async def refresh_tokens(
     )
     response.set_cookie(**utils.get_refresh_token_settings(refresh_token_value))
 
-    worker.add_task(service.expire_refresh_token, refresh_token["uuid"])
+    worker.add_task(service.expire_refresh_token, refresh_token["user_id"])
     return AccessTokenResponse(
         access_token=jwt.create_access_token(user=user),
         refresh_token=refresh_token_value,

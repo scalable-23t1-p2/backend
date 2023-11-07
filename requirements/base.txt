@@ -1,15 +1,18 @@
 aioredis==2.0.1
 alembic==1.9.1
 bcrypt
+celery==5.2.7
+redis==4.3.3
 databases[asyncpg]==0.7.0
 orjson==3.8.4
-psycopg2==2.9.5
+psycopg2-binary==2.9.1
 python-jose==3.3.0
 SQLAlchemy==1.4.46
 httpx==0.23.3
 minio==7.1.14
 boto3==1.28.68
 python-multipart==0.0.6
+flower == 2.0.1
 
 pydantic[email]==1.10.4
 fastapi==0.88.0

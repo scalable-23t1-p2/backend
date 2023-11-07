@@ -15,6 +15,8 @@ services:
       - "8000:8000"
     depends_on:
       - app_db
+    networks:
+      - ums-back-office  
 
   app_db:
     container_name: app_db
@@ -28,6 +30,8 @@ services:
       - app_pg_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    networks:
+      - ums-back-office  
 
   app_redis:
     image: redis:6.2-alpine
@@ -38,12 +42,97 @@ services:
       - '--requirepass myStrongPassword'
     ports:
       - 6379:6379
+    networks:
+      - ums-back-office
+  
+  celery_worker:
+      container_name: celery_worker
+      build: .
+      command: celery -A src.celery_worker.celery worker --loglevel=info
+      volumes:
+        - .:/app
+      environment:
+        - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+        - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      depends_on:
+        - app
+        - app_redis
+  
+  flower:
+    container_name: flower
+    build: .
+    command: celery -A src.celery_worker.celery flower --port=5555
+    ports:
+      - 5556:5555
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+    depends_on:
+      - app
+      - app_redis
+      - celery_worker
+    networks:
+      - ums-back-office
+  
+  worker_01:
+    image: convert_worker
+    container_name: worker_01
+    command: celery -A convert worker --loglevel=info --queues q01
+    volumes:
+      - ./convert:/app
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+    depends_on:
+      - app
+      - app_redis
+    networks:
+      - ums-back-office
+  
+  worker_02:
+    image: thumbnail_worker
+    container_name: worker_02
+    command: celery -A thumbnail worker --loglevel=info --queues q02
+    volumes:
+      - ./thumbnail:/app
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+    depends_on:
+      - app
+      - app_redis
+    networks:
+      - ums-back-office
+    
+  worker_03:
+    image: chunk_worker
+    container_name: worker_03
+    command: celery -A chunk worker --loglevel=info --queues q03
+    volumes:
+      - ./chunk:/app
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+    depends_on:
+      - app
+      - app_redis
+    networks:
+      - ums-back-office
 
 volumes:
   app_pg_data:
     driver: "local"
 
 networks:
+  ums-back-office:
   default:
     external: true
     name: app_main
