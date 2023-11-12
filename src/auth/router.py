@@ -21,6 +21,8 @@ async def say_hi():
 async def register_user(
     auth_data: AuthUser = Depends(valid_user_create),
 ) -> dict[str, str]:
+    print("regis auth data")
+    print(auth_data)
     user = await service.create_user(auth_data)
     return {
         "email": user["email"],  # type: ignore
@@ -62,7 +64,6 @@ async def refresh_tokens(
         user_id=refresh_token["user_id"]
     )
     response.set_cookie(**utils.get_refresh_token_settings(refresh_token_value))
-
     worker.add_task(service.expire_refresh_token, refresh_token["user_id"])
     return AccessTokenResponse(
         access_token=jwt.create_access_token(user=user),

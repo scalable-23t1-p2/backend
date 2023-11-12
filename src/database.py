@@ -62,12 +62,14 @@ messages = Table(
     Column("updated_at", DateTime, onupdate=func.now()),
 )
 
-task_result = Table(
-    'task_result',
+task_data = Table(
+    'task_data',
     metadata,
     Column('id', Integer, primary_key=True),
     Column('task_id', String, nullable=False),
     Column('task_type', String, nullable=False),
+    Column('user', String , nullable=False),
+    Column('filename_noext', String, nullable=False),
 )
 
 metadata.create_all(engine)

@@ -16,7 +16,7 @@ class Config(BaseSettings):
     REDIS_URL: RedisDsn
 
     # SITE_DOMAIN: str = "tanapon.com"
-    SITE_DOMAIN: str = "127.0.0.1"
+    SITE_DOMAIN: str = "127.0.0.1:3000"
 
     ENVIRONMENT: Environment = Environment.PRODUCTION
 
