@@ -74,3 +74,18 @@ def generate_s3_file_path(email:str, filename:str) -> str:
 async def get_task_by_user_filename(user: str, filename_noext: str) -> Record | None:
     select_query = select(task_data).where(task_data.c.user == user)
     return await database.fetch_one(select_query)
+
+def generate_presigned_get(bucket_name: str, object_name: str) -> str:
+    s3_client = boto3.client(
+        's3',
+        aws_access_key_id=os.getenv("S3_ACCESS_KEY"),
+        aws_secret_access_key=os.getenv("S3_SECRET_KEY"),
+    )
+    try:
+        response = s3_client.generate_presigned_url('get_object', Params={'Bucket': bucket_name,
+                                                            'Key': object_name}, ExpiresIn=3600)
+        print(response)
+    except ClientError as e:
+        print(e.response)
+        return None
+    return response

@@ -28,7 +28,7 @@ from celery.result import AsyncResult
 router = APIRouter()
 BROKER_URL = os.getenv("CELERY_BROKER_URL")
 RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND")
-celery_app = Celery('thumbnail', broker=BROKER_URL,
+celery_app = Celery('backend', broker=BROKER_URL,
                     backend=RESULT_BACKEND)
 
 @router.get("/hello", status_code=status.HTTP_200_OK)
@@ -117,12 +117,16 @@ async def track_upload(
     user_email: str = user["email"]
     filename_noext = filename.rsplit('.', 1)[0]
     print("hello inside track upload of "+user_email+' filename='+filename)
-    select_query = select(task_data).where(task_data.c.user == user_email and task_data.c.filename_noext == filename_noext)
-    db_res: Record = await database.fetch_one(select_query)
+    print(user_email+" "+filename_noext)
+    query = "SELECT * FROM task_data WHERE task_data.user = :user AND task_data.filename_noext = :filename_noext"
+    db_res: Record = await database.fetch_one(query=query, values={"user": user_email, "filename_noext": filename_noext})
     print("db_res = "+str(db_res))
-    print(db_res["task_id"]) #return task id for convert_task
-    convert_result = AsyncResult(db_res["task_id"]).state
-    res = AsyncResult(db_res["task_id"])  #return task id for convert_task
+    tid = str(db_res["task_id"])
+    print(tid) #return task id for convert_task
+    res = AsyncResult(tid)  #return task id for convert_task
+    convert_result = res.state
+    print(tid)
+    print("convert_result = "+str(convert_result))
     print("this tuple task ="+str(res.result))
     (chunk_tid, thumbnail_tid) = res.result #return task id for chunk_task and thumbnail_task
     
@@ -174,13 +178,41 @@ async def track_upload(
         return {"return_value": "25%"}
     else:   
         return {"return_value": "0%"}
-# @router.get("/list", status_code=status.HTTP_200_OK)
-# async def list_files(
-#     refresh_token: Record = Depends(valid_refresh_token),
-#     jwt_data: JWTData = Depends(parse_jwt_user_data),
-# ):
-#     user = await service.get_user_by_id(jwt_data.user_id)
-#     email: EmailStr = user["email"]
-#     file_lists = await objects_list.list_objects(email)
-#     literal = ast.literal_eval(file_lists)
-#     return literal
+
+@router.get("/my_videos")
+async def get_my_videos(
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
+) -> dict[str, str]:
+    user = await service.get_user_by_uuid(jwt_data.user_id)
+    url = s3_service.generate_presigned_get("toktikbucket", "ex@ex/daran.jpg")
+    print(url)
+    select_user = select(task_data).where(task_data.c.user == user["email"])
+    db_res = await database.fetch_all(select_user)
+    vid_title: set[str] = set()
+    for db_res_item in db_res:
+        vid_title.add(str(db_res_item.filename_noext))
+    vid_title_list = list(vid_title)
+    vid_title_list.sort(reverse=True)
+    print(vid_title_list)
+    return {"vid_title_list": vid_title_list}
+
+
+@router.get("/my_videos/{filename}")
+async def get_presigned_playlist(
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
+):
+    return None
+    # m3u8_content = m3u8_obj['Body'].read().decode('utf-8')
+
+    # playlist = m3u8.loads(m3u8_content)
+
+    # # Replace each .ts segment URL with a presigned URL
+    # for segment in playlist.segments:
+    #     segment.uri = generate_presigned_url_get(segment.uri)
+
+    # # Return the modified m3u8 content
+    # return jsonify({'m3u8_content': playlist.dumps()}), 200
+    # # return {
+    # #     "email": user["email"],  # type: ignore
+    # # }
+
