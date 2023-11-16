@@ -89,3 +89,11 @@ def generate_presigned_get(bucket_name: str, object_name: str) -> str:
         print(e.response)
         return None
     return response
+
+def get_s3_object(bucket_name: str, object_name: str):
+    s3_client = boto3.client(
+        's3',
+        aws_access_key_id=os.getenv("S3_ACCESS_KEY"),
+        aws_secret_access_key=os.getenv("S3_SECRET_KEY"),
+    )
+    return s3_client.get_object(Bucket=bucket_name, Key=object_name)

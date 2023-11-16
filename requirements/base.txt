@@ -13,7 +13,7 @@ minio==7.1.14
 boto3==1.28.68
 python-multipart==0.0.6
 flower == 2.0.1
-
+m3u8==3.6.0
 pydantic[email]==1.10.4
 fastapi==0.88.0
 uvicorn[standard]==0.20.0

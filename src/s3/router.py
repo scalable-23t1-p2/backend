@@ -8,7 +8,7 @@ from src.auth.dependencies import valid_refresh_token
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData
 from starlette import status
-
+from fastapi.responses import JSONResponse
 # from src.auth import service
 # from src.auth.dependencies import valid_refresh_token
 # from src.auth.jwt import parse_jwt_user_data
@@ -24,6 +24,8 @@ from src.database import task_data, database
 from src.s3 import service as s3_service
 from src.auth import service
 from celery.result import AsyncResult
+import m3u8
+
 
 router = APIRouter()
 BROKER_URL = os.getenv("CELERY_BROKER_URL")
@@ -179,27 +181,43 @@ async def track_upload(
     else:   
         return {"return_value": "0%"}
 
+
 @router.get("/my_videos")
 async def get_my_videos(
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ) -> dict[str, str]:
     user = await service.get_user_by_uuid(jwt_data.user_id)
-    url = s3_service.generate_presigned_get("toktikbucket", "ex@ex/daran.jpg")
-    print(url)
     select_user = select(task_data).where(task_data.c.user == user["email"])
     db_res = await database.fetch_all(select_user)
     vid_title: set[str] = set()
+    #get video title into list
     for db_res_item in db_res:
         vid_title.add(str(db_res_item.filename_noext))
     vid_title_list = list(vid_title)
-    vid_title_list.sort(reverse=True)
-    print(vid_title_list)
-    return {"vid_title_list": vid_title_list}
+    vid_title_list.sort(reverse=False)
+    vid_jpg = []
+
+    for vid_title in vid_title_list:
+        print(str(user["email"].rsplit('.', 1)[0]+'/'+vid_title+'.jpg'))
+        presign_url_jpg = s3_service.generate_presigned_get("toktikbucket", str(user["email"].rsplit('.', 1)[0]+'/'+vid_title+'.jpg'))
+        vid_jpg.append({
+            "id": vid_title,
+            "name": vid_title,
+            "presigned_jpg_url": presign_url_jpg,
+            "owner": user["email"],
+        })
+        # vid_jpg[vid_title] = presign_url_jpg
+        url = s3_service.generate_presigned_get("toktikbucket", "ex@ex/daran.jpg")
+    print("this url"+url)
+    print(vid_jpg)
+    
+    return vid_jpg
 
 
 @router.get("/my_videos/{filename}")
 async def get_presigned_playlist(
     jwt_data: JWTData = Depends(parse_jwt_user_data),
+
 ):
     return None
     # m3u8_content = m3u8_obj['Body'].read().decode('utf-8')
@@ -216,3 +234,28 @@ async def get_presigned_playlist(
     # #     "email": user["email"],  # type: ignore
     # # }
 
+
+
+@router.post("/process_m3u8", status_code=status.HTTP_201_CREATED)
+async def process_vid(
+    request_data: dict,
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
+)-> dict[str, str]:
+    user = await service.get_user_by_uuid(jwt_data.user_id)
+    user_email: str = user["email"]
+    filename = request_data.get('filename')
+    s3_filepath = s3_service.generate_s3_file_path(user_email, str(filename+'.m3u8'))
+    response = s3_service.get_s3_object("toktikbucket", s3_filepath)
+    m3u8_content = response['Body'].read().decode('utf-8')
+    # Load M3U8 Playlist using m3u8 library
+    playlist = m3u8.loads(m3u8_content)
+
+    # Replace each .ts segment URL with a presigned URL
+    for segment in playlist.segments:
+        print("segment.uri="+segment.uri)
+        s3_segment_path = s3_service.generate_s3_file_path(user_email, segment.uri)
+        segment.uri = s3_service.generate_presigned_get("toktikbucket",s3_segment_path)
+
+    # Return the modified M3U8 content as JSON
+    modified_m3u8_content = playlist.dumps()
+    return JSONResponse(content={'m3u8_content': modified_m3u8_content}, status_code=200)
